@@ -305,6 +305,8 @@ MonoBehaviour:
   isHidden: 0
   isFlagged: 0
   level: 0
+  x: 0
+  y: 0
 --- !u!61 &7674392549280621630
 BoxCollider2D:
   m_ObjectHideFlags: 0

@@ -13,6 +13,8 @@ public class Cell : MonoBehaviour
     public bool isFlagged;
     [HideInInspector]
     public int level;
+    [HideInInspector]
+    public int x, y;
 
     private SpriteRenderer spriteRenderer;
     private TextMeshPro levelText;
@@ -25,7 +27,7 @@ public class Cell : MonoBehaviour
 
     private void OnMouseOver() {
         if (Input.GetMouseButtonDown(0))
-            Open();
+            Open(true);
         if (Input.GetMouseButtonDown(1))
             Flag();
     }
@@ -38,23 +40,21 @@ public class Cell : MonoBehaviour
         level = 0;
     }
 
-    private void Open () {
+    public void Open (bool byClick) {
         if (isFlagged) return;
         if (!isHidden) return;
-
-        Debug.Log("[Cell.Open()]: Cell.Open() called");
+        
         isHidden = false;
 
+        if (byClick)
+            GameManager.instance.CellOppened(x, y, isBomb);
+
         if (isBomb) {
-            Debug.Log("[Cell.Open()]: It's a bomb");
             spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/Bomb Cell");
-            GameManager.instance.GameOver();
         }
         else {
-            Debug.Log("[Cell.Open()]: Empty cell");
             spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/Empty Cell");
             if (level > 0) {
-                Debug.Log("[Cell.Open()]: Has level " + level);
                 levelText.text = level.ToString();
             }
         }
@@ -64,7 +64,7 @@ public class Cell : MonoBehaviour
         if (!isHidden) return;
 
         isFlagged = !isFlagged;
-        Debug.Log("[Cell.Flag()]: isFlagged=" + isFlagged.ToString());
+        GameManager.instance.CellMarked(isFlagged, x, y, isBomb);
 
         if (isFlagged)
             spriteRenderer.sprite = Resources.Load<Sprite>("Sprites/Marked Cell");
