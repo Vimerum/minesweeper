@@ -26,6 +26,8 @@ public class Cell : MonoBehaviour
     }
 
     private void OnMouseOver() {
+        if (GameManager.instance.state != State.Running) return;
+
         if (Input.GetMouseButtonDown(0))
             Open(true);
         if (Input.GetMouseButtonDown(1))
