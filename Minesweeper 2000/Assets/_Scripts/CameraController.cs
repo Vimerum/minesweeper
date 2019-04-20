@@ -21,6 +21,8 @@ public class CameraController : MonoBehaviour
     }
 
     private void UpdateBounds () {
+        if (GameManager.instance == null) return;
+
         target = GameManager.instance.bounds;
 
         float screenRatio = (float)Screen.width / (float)Screen.height;
