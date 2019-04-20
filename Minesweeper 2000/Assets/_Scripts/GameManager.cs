@@ -2,12 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
+
+public delegate void ButtonClick();
+public delegate void ButtonReturn(bool answer);
 
 public enum State {Running, Paused, Won, Lost};
 
 public class GameManager : MonoBehaviour
 {
+    #region Public Variables
     public static GameManager instance;
 
     [Header("Game state")]
@@ -22,10 +27,16 @@ public class GameManager : MonoBehaviour
     [Header("UI Elements")]
     public TextMeshProUGUI timer;
     public TextMeshProUGUI bombsLeft;
+    [Header("Dialogs")]
+    public Canvas canvas;
+    public GameObject warningDialogPrefab;
+    public GameObject endGameDialog;
 
     [HideInInspector]
     public Bounds bounds;
+    #endregion
 
+    #region Private Variables
     private GameObject[][] cells;
     private List<GameObject> bombs;
 
@@ -33,44 +44,124 @@ public class GameManager : MonoBehaviour
     private int cellsOppened;
     private int cellsMarked;
     private float currentTime;
+    #endregion
 
+    #region MonoBehaviour Callbacks
     public void Awake() {
-        if (instance == null)
+        // Ensure this is the only instance of this object
+        if (instance == null) {
             instance = this;
-        else
+            DontDestroyOnLoad(gameObject);
+        }  else {
             Destroy(this);
-    }
-
-    public void Start() {
-        Initialize();
+        }
     }
 
     public void Update() {
-        // Update timer
-        currentTime += Time.deltaTime;
-        Debug.Log(currentTime);
-        timer.text = string.Format("{0:00}:{1:00}", (Mathf.FloorToInt(currentTime) / 60), (Mathf.Floor(currentTime) % 60));
+        if (state == State.Running) {
+            // Update timer
+            currentTime += Time.deltaTime;
+            timer.text = string.Format("{0:00}:{1:00}", (Mathf.FloorToInt(currentTime) / 60), (Mathf.Floor(currentTime) % 60));
 
-        // Update bombs left
-        bombsLeft.text = string.Format("{0:d}", numberBombs - cellsMarked);
+            // Update bombs left
+            bombsLeft.text = string.Format("{0:d}", numberBombs - cellsMarked);
 
-        // Check if the game has ended with the winning condition
-        if (state == State.Running && cellsClosed + cellsMarked == numberBombs)
-            Win();
+            // Check if the game has ended with the winning condition
+            if (state == State.Running && cellsClosed + cellsMarked == numberBombs)
+                Win();
+        }
+    }
+    #endregion
+
+    #region Warning Dialogs
+    public void MenuInitializer () {
+        // Pauses the game
+        state = State.Paused;
+
+        // Instantiate the dialog
+        GameObject go = Instantiate(warningDialogPrefab, canvas.transform) as GameObject;
+        WarningDialogController controller = go.GetComponent<WarningDialogController>();
+
+        // Stop if something went wrong (it's problably not going to do this)
+        if (controller == null) return;
+
+        // Initialize the dialog
+        controller.Initialize("Deseja voltar ao menu inicial?", "Se sair da partida, todo o progresso será perdido. Você tem certeza que deseja sair?", "Sair", "Cancelar", ReturnToMenu);
+    }
+
+    public void RestartInitializer () {
+        // Pauses the game
+        state = State.Paused;
+
+        // Instantiate the dialog
+        GameObject go = Instantiate(warningDialogPrefab, canvas.transform) as GameObject;
+        WarningDialogController controller = go.GetComponent<WarningDialogController>();
+
+        // Stop if something went wrong (it's problably not going to do this)
+        if (controller == null) return;
+
+        // Initialize the dialog
+        controller.Initialize("Deseja reiniciar?", "Se reiniciar a partida, todo o progresso será perdido. Você tem certeza que deseja reiniciar?", "Reiniciar", "Cancelar", Restart);
+    }
+    #endregion
+
+    #region State Changers
+    public void ReturnToMenu () {
+        ReturnToMenu(true);
+    }
+
+    public void ReturnToMenu(bool shouldReturn) {
+        if (shouldReturn) {
+            // Reset the game
+            foreach (Transform c in transform) {
+                Destroy(c.gameObject);
+            }
+            // Load main menu scene
+            SceneManager.LoadScene("MainMenu");
+        } else {
+            // Resumes the game
+            state = State.Running;
+        }
     }
 
     public void Restart () {
-        // TODO: Add confirmation dialog
+        Restart(true);
+    }
+
+    public void Restart (bool shouldRestart) {
+        // Resumes the game
+        state = State.Running;
+
+        // If the user cancelled, exit the function
+        if (!shouldRestart) return;
+
+        // Pauses game
+        state = State.Paused;
+
+        // Reset the game
         foreach (Transform c in transform) {
             Destroy(c.gameObject);
         }
-        Initialize();
+
+        SceneManager.LoadScene("GameScene");
     }
+    #endregion
 
-    private void Initialize () {
-        // Set Game State
-        state = State.Running;
-
+    #region Initializers
+    public void Setup() {
+        if (timer == null) {
+            Debug.LogError("NullReferenceException::GameManager: The variable GameManager.instance.timer is set to null");
+            return;
+        }
+        if (bombsLeft == null) {
+            Debug.LogError("NullReferenceException::GameManager: The variable GameManager.instance.bombsLeft is set to null");
+            return;
+        }
+        if (canvas == null) {
+            Debug.LogError("NullReferenceException::GameManager: The variable GameManager.instance.canvas is set to null");
+            return;
+        }
+        
         // Set standard values
         currentTime = 0f;
         cellsClosed = (int)gridSize.x * (int)gridSize.y;
@@ -91,11 +182,13 @@ public class GameManager : MonoBehaviour
                 c.y = y;
             }
         }
+
+        // Add the top and right offset
         Vector3 newTopOffset = new Vector3(bounds.size.x, bounds.size.y, 0f);
         newTopOffset.x += (bounds.size.x * 0.05f);
         newTopOffset.y += (bounds.size.y * offset);
         bounds.Encapsulate(newTopOffset);
-
+        // Add the bottom and left offset
         Vector3 newBottomOffset = new Vector3(-(bounds.size.x * 0.05f), -(bounds.size.y * 0.05f), 0f);
         bounds.Encapsulate(newBottomOffset);
 
@@ -113,26 +206,14 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void SetBomb (GameObject bomb) {
-        Cell cell = bomb.GetComponent<Cell>();
-        if (cell != null)
-            cell.isBomb = true;
+    public void Initiate () {
+        // Set Game State
+        state = State.Running;
     }
+    #endregion
 
-    private void UpdateNeighbours (int bombX, int bombY) {
-        for (int x = bombX - 1; x <= bombX + 1; x++) {
-            for (int y = bombY - 1; y <= bombY + 1; y++) {
-                if (x == bombX && y == bombY) continue;
-                if (x < 0 || x >= gridSize.x) continue;
-                if (y < 0 || y >= gridSize.y) continue;
-
-                Cell c = cells[y][x].GetComponent<Cell>();
-                c.level++;
-            }
-        }
-    }
-
-    public void CellOppened (int x, int y, bool isBomb) {
+    #region Cell Changers
+    public void CellOppened(int x, int y, bool isBomb) {
         if (isBomb)
             GameOver();
         cellsClosed--;
@@ -140,7 +221,17 @@ public class GameManager : MonoBehaviour
         Open(x, y);
     }
 
-    public void Open (int cellX, int cellY) {
+    public void CellMarked(bool isFlagged, int x, int y, bool isBomb) {
+        if (isFlagged) {
+            cellsClosed--;
+            cellsMarked++;
+        } else {
+            cellsClosed++;
+            cellsMarked--;
+        }
+    }
+
+    private void Open(int cellX, int cellY) {
         if (cells[cellY][cellX].GetComponent<Cell>().level > 0) return;
 
         for (int x = cellX - 1; x <= cellX + 1; x++) {
@@ -161,25 +252,62 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+    #endregion
 
-    public void CellMarked(bool isFlagged, int x, int y, bool isBomb) {
-        if (isFlagged) {
-            cellsClosed--;
-            cellsMarked++;
-        } else {
-            cellsClosed++;
-            cellsMarked--;
+    #region Grid Setup
+    private void SetBomb (GameObject bomb) {
+        Cell cell = bomb.GetComponent<Cell>();
+        if (cell != null)
+            cell.isBomb = true;
+    }
+
+    private void UpdateNeighbours (int bombX, int bombY) {
+        // Increase the level of every bomb's neighbour by one
+        for (int x = bombX - 1; x <= bombX + 1; x++) {
+            for (int y = bombY - 1; y <= bombY + 1; y++) {
+                if (x == bombX && y == bombY) continue;
+                if (x < 0 || x >= gridSize.x) continue;
+                if (y < 0 || y >= gridSize.y) continue;
+
+                Cell c = cells[y][x].GetComponent<Cell>();
+                c.level++;
+            }
         }
     }
+    #endregion
 
-    public void Win () {
-        Debug.Log("Win!!!!");
+    #region End Game States
+    private void Win () {
+        // Changes game state
         state = State.Won;
+
+        // Instantiate Dialog
+        GameObject go = Instantiate(endGameDialog, canvas.transform) as GameObject;
+        EndDialogController controller = go.GetComponent<EndDialogController>();
+
+        // Stop if something went wrong (it's problably not going to do this)
+        if (controller == null) return;
+
+        // Initialize the dialog
+        controller.Initialize("Você ganhou o jogo!", currentTime, Restart, ReturnToMenu);
     }
 
-    public void GameOver () {
-        Debug.Log("GAME OVER!!");
+    private void GameOver () {
+        // Changes game state
         state = State.Lost;
+
+        // Initiate game over animation
+        StartCoroutine(GameOverSequence());
+    }
+
+    private IEnumerator GameOverSequence () {
+        // Reveal bombs
+        foreach (GameObject b in bombs) {
+            Cell c = b.GetComponent<Cell>();
+            c.Open(false);
+            yield return new WaitForSeconds(0.2f);
+        }
+        yield return new WaitForSeconds(0.5f);
 
         // Reveal all cells
         for (int x = 0; x < gridSize.x; x++) {
@@ -188,5 +316,17 @@ public class GameManager : MonoBehaviour
                 c.Open(false);
             }
         }
+        yield return new WaitForSeconds(0.5f);
+        
+        // Instantiate Dialog
+        GameObject go = Instantiate(endGameDialog, canvas.transform) as GameObject;
+        EndDialogController controller = go.GetComponent<EndDialogController>();
+
+        // Stop if something went wrong (it's problably not going to do this)
+        if (controller != null) {
+            // Initialize the dialog
+            controller.Initialize("Não foi dessa vez!", currentTime, Restart, ReturnToMenu);
+        }
     }
+    #endregion
 }
