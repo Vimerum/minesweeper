@@ -43,14 +43,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e283963ecf4ce1b48bcc3507015e1ebd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  state: 0
-  gridSize: {x: 16, y: 9}
+  state: 1
+  gridSize: {x: 20, y: 10}
   offset: 0.4
   numberBombs: 10
   cellPrefab: {fileID: 7654336447304917926, guid: 63305379ef62db446afdfe73efad0ed9,
     type: 3}
   timer: {fileID: 0}
   bombsLeft: {fileID: 0}
+  canvas: {fileID: 0}
+  warningDialogPrefab: {fileID: 958996746968164997, guid: d85705029a7784645b1ca909404ef973,
+    type: 3}
+  endGameDialog: {fileID: 1301734391486348242, guid: 86ad5e99f8274554bb8adb49aaf7a1da,
+    type: 3}
   bounds:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
