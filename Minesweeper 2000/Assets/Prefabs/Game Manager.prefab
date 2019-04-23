@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   state: 1
-  gridSize: {x: 20, y: 10}
+  gridSize: {x: 8, y: 8}
   offset: 0.4
   numberBombs: 10
   cellPrefab: {fileID: 7654336447304917926, guid: 63305379ef62db446afdfe73efad0ed9,
