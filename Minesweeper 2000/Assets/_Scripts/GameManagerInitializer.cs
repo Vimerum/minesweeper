@@ -9,6 +9,7 @@ public class GameManagerInitializer : MonoBehaviour
 {
     [Header("GameManager")]
     public GameObject gameManager;
+    public bool fixedGrid = false;
     [Header("UI Elements for the GM")]
     public TextMeshProUGUI timer;
     public TextMeshProUGUI bombsLeft;
@@ -34,6 +35,7 @@ public class GameManagerInitializer : MonoBehaviour
         GameManager.instance.timer = timer;
         GameManager.instance.bombsLeft = bombsLeft;
         GameManager.instance.canvas = canvas;
+        GameManager.instance.fixedGrid = fixedGrid;
 
         // Setup the values in the UI Elements
         menuButton.onClick.AddListener(() => GameManager.instance.MenuInitializer());
@@ -45,7 +47,6 @@ public class GameManagerInitializer : MonoBehaviour
 
     private void Update() {
         if (!started) {
-            Debug.Log(director.state);
             if (director.state != PlayState.Playing) {
                 // Starts the game when the timeline ends
                 started = true;
