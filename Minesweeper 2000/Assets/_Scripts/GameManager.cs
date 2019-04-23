@@ -18,7 +18,6 @@ public class GameManager : MonoBehaviour
     [Header("Game state")]
     public State state;
     [Header("Grid Configuration")]
-    public bool fixedGrid = false;
     public Vector2 gridSize;
     [Range(0f,1f)]
     public float offset;
@@ -35,13 +34,12 @@ public class GameManager : MonoBehaviour
 
     [HideInInspector]
     public Bounds bounds;
-    [HideInInspector]
-    public List<GameObject> bombs;
-    [HideInInspector]
-    public GameObject[][] cells;
     #endregion
 
     #region Private Variables
+    private GameObject[][] cells;
+    private List<GameObject> bombs;
+
     private int cellsClosed;
     private int cellsOppened;
     private int cellsMarked;
@@ -195,18 +193,16 @@ public class GameManager : MonoBehaviour
         bounds.Encapsulate(newBottomOffset);
 
         // Set with of them is the cells
-        if (!fixedGrid) {
-            bombs = new List<GameObject>();
-            for (int i = 0; i < numberBombs; i++) {
-                int bombX, bombY;
-                do {
-                    bombX = Random.Range(0, (int)gridSize.x);
-                    bombY = Random.Range(0, (int)gridSize.y);
-                } while (bombs.Contains(cells[bombY][bombX]));
-                bombs.Add(cells[bombY][bombX]);
-                SetBomb(cells[bombY][bombX]);
-                UpdateNeighbours(bombX, bombY);
-            }
+        bombs = new List<GameObject>();
+        for (int i = 0; i < numberBombs; i++) {
+            int bombX, bombY;
+            do {
+                bombX = Random.Range(0, (int)gridSize.x);
+                bombY = Random.Range(0, (int)gridSize.y);
+            } while (bombs.Contains(cells[bombY][bombX]));
+            bombs.Add(cells[bombY][bombX]);
+            SetBomb(cells[bombY][bombX]);
+            UpdateNeighbours(bombX, bombY);
         }
     }
 
@@ -259,13 +255,13 @@ public class GameManager : MonoBehaviour
     #endregion
 
     #region Grid Setup
-    public void SetBomb (GameObject bomb) {
+    private void SetBomb (GameObject bomb) {
         Cell cell = bomb.GetComponent<Cell>();
         if (cell != null)
             cell.isBomb = true;
     }
 
-    public void UpdateNeighbours (int bombX, int bombY) {
+    private void UpdateNeighbours (int bombX, int bombY) {
         // Increase the level of every bomb's neighbour by one
         for (int x = bombX - 1; x <= bombX + 1; x++) {
             for (int y = bombY - 1; y <= bombY + 1; y++) {
